@@ -1,0 +1,30 @@
+{
+  "name": "memories_api",
+  "version": "0.0.0",
+  "description": "m.emori.es API",
+  "main": "server.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://asilluron@github.com/Kingles/memories_api.git"
+  },
+  "author": "m.emori.es team. Andrew, Cameron and Jeromy",
+  "license": "private",
+  "bugs": {
+    "url": "https://github.com/Kingles/memories_api/issues"
+  },
+  "homepage": "https://github.com/Kingles/memories_api",
+  "dependencies": {
+    "aws-sdk": "^2.0.17",
+    "bcrypt": "^0.8.0",
+    "hapi": "^6.8.1",
+    "hapi-auth-basic": "^1.1.1",
+    "hapi-auth-jsonwebtoken": "^0.2.1",
+    "joi": "^4.6.2",
+    "jsonwebtoken": "^1.1.2",
+    "lout": "^5.0.2",
+    "mongoose": "^3.8.16"
+  }
+}
