@@ -76,6 +76,7 @@ function memoryApi(server) {
     //Update a memory
     var updateMemoryConfig = {
         handler: function(request, reply) {
+            // TODO: only allow owner to update
             var id = request.params.id;
 
             async.map(request.payload.participants, normalizeParticipant, saveMemory);
