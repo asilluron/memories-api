@@ -9,10 +9,11 @@ var routes = [];
 var getAllMemoryConfig = {
     handler: function(request, reply) {
         Memory.find({
-            "members.user": request.auth.credentials._id
+            "participants.user": request.auth.credentials._id
         })
-            .exec(function(err, user) {
-                reply(user);
+            .populate('participants.user')
+            .exec(function(err, memory) {
+                reply(memory);
             });
 
     },
