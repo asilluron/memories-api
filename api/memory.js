@@ -1,4 +1,5 @@
 var Memory = require("../model").Memory;
+var Moment = require("../model").Moment;
 var User = require("../model").User;
 var Joi = require("joi");
 var async = require("async");
@@ -134,6 +135,7 @@ function memoryApi(server) {
             Memory.find({
                 "participants.user": request.auth.credentials._id
             })
+                .populate('about.primaryMoment')
                 .populate('participants.user')
                 .exec(function(err, memories) {
                     if (err) {
@@ -152,6 +154,7 @@ function memoryApi(server) {
             Memory.findOne({
                 "_id": request.params.id
             })
+                .populate('about.primaryMoment')
                 .populate('participants.user')
                 .exec(function(err, memory) {
                     if (err) {
@@ -204,6 +207,8 @@ function memoryApi(server) {
     }
     var createNewMemoryConfig = {
         handler: function(request, reply) {
+            var payloadMoment = request.payload.about.primaryMoment;
+            
             var ownerParticipant = {
                 acceptance: "accepted",
                 role: "owner",
@@ -224,26 +229,69 @@ function memoryApi(server) {
                     endDate: request.payload.endDate
                 });
 
+                console.log(request.payload);
+
                 newMemory.save(function(err, memory) {
                     if (err) {
                         reply('Database error').code(503);
                     } else {
-                        server.emit('MEMORY:NEW', memory._id);
-                        reply({
-                            _id: memory._id
-                        }).code(201);
+                        var next = function () {
+                            server.emit('MEMORY:NEW', memory._id);
+                            reply({
+                                _id: memory._id
+                            }).code(201);
+                        };
+                        if (payloadMoment) {
+                            new Moment({
+                                memory: memory._id,
+                                creator: request.auth.credentials._id,
+                                text: payloadMoment.text,
+                                imageUrl: payloadMoment.imageUrl,
+                                location: payloadMoment.location,
+                                sharing: payloadMoment.sharing,
+                                milestone: null
+                            }).save(function (err, moment) {
+                                if (err) {
+                                    reply('Database error').code(503);
+                                } else {
+                                    Memory.findOneAndUpdate({
+                                        _id: memory._id
+                                    }, {
+                                        'about.primaryMoment': moment._id
+                                    }, function (err) {
+                                        if (err) {
+                                            reply('Database error').code(503);
+                                        } else {
+                                            next();
+                                        }
+                                    });
+                                }
+                            });
+                        } else {
+                            next();
+                        }
                     }
                 });
             }
-
-
-
         },
         auth: "jwt",
         validate: {
             payload: {
                 about: Joi.object({
-                    name: Joi.string().min(1).max(200).required()
+                    name: Joi.string().min(1).max(200).required(),
+                    primaryMoment: Joi.object({
+                        text: Joi.string().min(0).max(1000).allow(''),
+                        imageUrl: Joi.string().min(5).max(240),
+                        location: Joi.object({
+                            name: Joi.string().min(0).max(200).allow(''),
+                            gps: Joi.object({
+                                lat: Joi.string().min(0).max(200).allow(''),
+                                long: Joi.string().min(0).max(200).allow('')
+                            }).allow(null),
+                            address: Joi.string().min(0).max(200).allow('')
+                        }),
+                        sharing: Joi.string().valid("private", "public").required()
+                    }).allow(null),
                 }).required(),
                 participants: Joi.array().includes(
                     Joi.object({
