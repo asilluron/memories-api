@@ -3,6 +3,8 @@ var Hapi = require('hapi');
 var lout = require("lout");
 var config = require("./config");
 var model = require("./model");
+var api = require("./api");
+var Bcrypt = require('bcrypt');
 
 mongoose.connect(config.mongoconnection);
 var db = mongoose.connection;
@@ -23,9 +25,9 @@ var options = {
 
 var server = new Hapi.Server(port, options);
 
+
 var validateLogin = function(username, password, callback) {
     var criteria;
-    //Allow login through email or username... handy
     if (username.indexOf('@') > 0) {
         criteria = {
             email: username
@@ -47,6 +49,7 @@ var validateLogin = function(username, password, callback) {
 
 };
 
+
 var validateToken = function(token, decodedToken, cb) {
     model.User.findById(decodedToken.id).exec(function(err, user) {
         if (err) {
@@ -55,7 +58,6 @@ var validateToken = function(token, decodedToken, cb) {
         cb(null, true, user);
     });
 };
-
 
 server.pack.register([{
     plugin: lout
@@ -73,7 +75,7 @@ server.pack.register([{
     });
 
     server.auth.strategy('jwt', 'jwt', {
-        key: process.env.JWT_KEY,
+        key: config.privatekey,
         validateFunc: validateToken
     });
 
@@ -81,4 +83,7 @@ server.pack.register([{
         console.log("Hapi server started @ " + server.info.uri);
     });
 
+    api.forEach(function(route) {
+        server.route(route);
+    });
 });
