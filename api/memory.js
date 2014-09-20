@@ -155,25 +155,25 @@ function memoryApi(server) {
      */
     routes.push({
         method: 'GET',
-        path: '/memory',
+        path: '/memories',
         config: getAllMemoryConfig
     });
 
     routes.push({
         method: 'POST',
-        path: '/memory',
+        path: '/memories',
         config: createNewMemoryConfig
     });
 
     routes.push({
         method: 'PATCH',
-        path: '/memory/{id}',
+        path: '/memories/{id}',
         config: updateMemoryConfig
     });
 
     routes.push({
         method: 'DELETE',
-        path: '/memory/{id}',
+        path: '/memories/{id}',
         config: deleteMemoryConfig
     });
 
