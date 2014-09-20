@@ -2,43 +2,75 @@ var Memory = require("../model").Memory;
 var User = require("../model").User;
 var Joi = require("joi");
 var async = require("async");
-var routes = [];
-var verifiedParticipants = [];
 
 function memoryApi(server) {
     // TODO: lock down memory access to participants
 
-    function populateVerifiedUsers(participant, cb) {
+    var objectIDRegex = /^[0-9a-fA-F]{24}$/;
+    function looksLikeObjectID(string) {
+        return objectIDRegex.test(string);
+    }
+    function findOrCreateUserIdByEmail(email, cb) {
+        User.findOne({
+            email: email
+        }).exec(function(err, user) {
+            if (err) {
+                cb(err);
+            } else if (user != null) {
+                cb(null, user._id);
+            } else {
+                //Create a new user
+                new User({
+                    email: email
+                }).save(function(err, user) {
+                    if (err) {
+                        cb(err);
+                    } else {
+                        cb(null, user._id);
+                    }
+                });
+            }
+        });
+    }
+    function findUserIdById(id, cb) {
+        User.findOne({
+            _id: id
+        }).exec(function(err, user) {
+            if (err) {
+                cb(err);
+            } else {
+                cb(null, user && user._id);
+            }
+        });
+    }
+    function findUserIdByUsername(username, cb) {
+        User.findOne({
+            username: username
+        }).exec(function(err, user) {
+            if (err) {
+                cb(err);
+            } else if (user) {
+                cb(null, user._id);
+            } else {
+                cb(new Error("User not found: " + username));
+            }
+        });
+    }
+    function findUserIdByString(participant, cb) {
         //First determine if it is a username or an email
         if (participant.indexOf("@") > 0) {
             //We got an email, so let's search for the user by email
-            User.findOne({
-                email: participant
-            }).exec(function(err, user) {
-                if (typeof user === "object") {
-                    verifiedParticipants.push(user._id);
-                    cb();
+            findOrCreateUserIdByEmail(participant, cb);
+        } else if (looksLikeObjectID(participant)) {
+            findUserIdById(participant, function (err, value) {
+                if (err || value) {
+                    cb(err, value);
                 } else {
-                    //Create a new user
-                    var newUser = new User({
-                        email: participant
-                    }).save(function(err, user) {
-                        verifiedParticipants.push(user._id);
-                        cb();
-                    });
+                    findUserByUsername(participant, cb);
                 }
             });
         } else {
-            User.find({
-                username: participant
-            }).exec(function(err, user) {
-                if (user) {
-                    verifiedParticipants.push(user._id);
-                    cb();
-                } else {
-                    cb("Username could not be verified");
-                }
-            });
+            findUserIdByUsername(participant, cb);
         }
     }
     //Update a memory
@@ -64,8 +96,12 @@ function memoryApi(server) {
                 "participants.user": request.auth.credentials._id
             })
                 .populate('participants.user')
-                .exec(function(err, memory) {
-                    reply(memory);
+                .exec(function(err, memories) {
+                    if (err) {
+                        reply('Database error').code(503);
+                    } else {
+                        reply(memories);
+                    }
                 });
 
         },
@@ -79,7 +115,13 @@ function memoryApi(server) {
             })
                 .populate('participants.user')
                 .exec(function(err, memory) {
-                    reply(memory);
+                    if (err) {
+                        reply('Database error').code(503);
+                    } else if (!memory) {
+                        reply('Memory not found').code(404);
+                    } else {
+                        reply(memory);
+                    }
                 });
 
         },
@@ -93,14 +135,9 @@ function memoryApi(server) {
                 "id": request.params.id
             }, function(err) {
                 if (err) {
-                    reply({
-                        name: 'Database error',
-                        code: 503
-                    });
+                    reply('Database error').code(503);
                 } else {
-                    reply({
-                        "deleted": true
-                    });
+                    reply().code(204);
                 }
             });
 
@@ -121,20 +158,17 @@ function memoryApi(server) {
                 user: request.auth.credentials._id
             }];
             var otherParticipants = request.payload.participants;
-            async.each(otherParticipants, populateVerifiedUsers, saveMemory);
+            async.map(otherParticipants, findUserIdByString, saveMemory);
 
-            function saveMemory(err) {
+            function saveMemory(err, verifiedParticipantIds) {
                 if (err) {
-                    reply({
-                        name: 'Username could not be verified',
-                        code: 422
-                    });
+                    return reply('Username could not be verified').code(422);
                 }
-                verifiedParticipants.forEach(function(vparticipant) {
+                verifiedParticipantIds.forEach(function(userId) {
                     initialPartcipants.push({
                         acceptance: "unknown",
                         role: "member",
-                        user: vparticipant
+                        user: userId
                     });
                 });
 
@@ -152,10 +186,7 @@ function memoryApi(server) {
 
                 newMemory.save(function(err, memory) {
                     if (err) {
-                        reply({
-                            name: 'Database error',
-                            code: 503
-                        });
+                        reply('Database error').code(503);
                     } else {
                         server.emit('MEMORY:NEW', memory._id);
                         reply(newMemory);
@@ -186,6 +217,7 @@ function memoryApi(server) {
     /**
      * ROUTES SETUP
      */
+    var routes = [];
     routes.push({
         method: 'GET',
         path: '/memories',
