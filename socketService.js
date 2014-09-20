@@ -1,4 +1,5 @@
 module.exports = function (server) {
+	var io = require('socket.io');
 	var ioServer = io(server);
  
 	ioServer.on('connection', function (socket) {
@@ -9,22 +10,28 @@ module.exports = function (server) {
 		socket.join(msg);
 	});
 
-	return function generateMemoryIoHandler(memoryId) {
-		var ns = ioServer.of(memoryId);
-		ns.on("chatMessage", function () {
-			ns.emit(msg);
-		});
+	var socketCache = {};
 
-		var memoryIo = {
-			newMilestone: function broadcastNewMilestone(milestoneId) {
-				ns.emit("milestone", {
-					action: "new",
-					id: milestoneId
-				});
-			}
-		};
+	return function getMemoryIoHandler(memoryId) {
+		if(socketCache[memoryId]){
+		} else {
+			var ns = ioServer.of(memoryId);
+			ns.on("chatMessage", function () {
+				ns.emit(msg);
+			});
 
-		return memoryIo;
+			var memoryIo = {
+				newMilestone: function broadcastNewMilestone(milestoneId) {
+					ns.emit("milestone", {
+						action: "new",
+						id: milestoneId
+					});
+				},
+				socket: ns
+			};
+			socketCache[memoryId] = memoryIo;
+		}
+		return socketCache[memoryId];
 	};
 
 };
