@@ -50,7 +50,7 @@ var validateLogin = function(username, password, callback) {
 var validateToken = function(token, decodedToken, cb) {
     model.User.findById(decodedToken.id).exec(function(err, user) {
         if (err) {
-            return cb(null, false, user._id);
+            return cb(null, false, user && user._id);
         }
         cb(null, true, user);
     });
