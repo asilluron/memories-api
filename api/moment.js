@@ -20,7 +20,8 @@ function momentApi(server) {
                     reply(moments);
                 }
             });
-        }
+        },
+        auth: "jwt"
     };
 
     var addMomentConfig = {
@@ -76,7 +77,8 @@ function momentApi(server) {
                     reply(moment);
                 }
             });
-        }
+        },
+        auth: "jwt"
     };
 
 
@@ -93,7 +95,8 @@ function momentApi(server) {
                 reply({deleted: true});
               }
             });
-        }
+        },
+        auth: "jwt"
     };
 
     /**
