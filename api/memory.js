@@ -56,21 +56,21 @@ function memoryApi(server) {
             }
         });
     }
-    function findUserIdByString(participant, cb) {
+    function findUserIdByToken(token, cb) {
         //First determine if it is a username or an email
-        if (participant.indexOf("@") > 0) {
+        if (token.indexOf("@") > 0) {
             //We got an email, so let's search for the user by email
-            findOrCreateUserIdByEmail(participant, cb);
-        } else if (looksLikeObjectID(participant)) {
-            findUserIdById(participant, function (err, value) {
+            findOrCreateUserIdByEmail(token, cb);
+        } else if (looksLikeObjectID(token)) {
+            findUserIdById(token, function (err, value) {
                 if (err || value) {
                     cb(err, value);
                 } else {
-                    findUserByUsername(participant, cb);
+                    findUserByUsername(token, cb);
                 }
             });
         } else {
-            findUserIdByUsername(participant, cb);
+            findUserIdByUsername(token, cb);
         }
     }
     //Update a memory
@@ -150,39 +150,40 @@ function memoryApi(server) {
         }
     };
 
+    function normalizeParticipant(participant, cb) {
+        findUserIdByToken(participant.user, function (err, userId) {
+            if (err) {
+                cb(err);
+            } else {
+                cb(null, {
+                    acceptance: 'unknown',
+                    role: participant.role,
+                    user: userId
+                });
+            }
+        });
+    }
     var createNewMemoryConfig = {
         handler: function(request, reply) {
-            var initialPartcipants = [{
+            var ownerParticipant = {
                 acceptance: "accepted",
                 role: "owner",
                 user: request.auth.credentials._id
-            }];
-            var otherParticipants = request.payload.participants;
-            async.map(otherParticipants, findUserIdByString, saveMemory);
+            };
+            async.map(request.payload.participants, normalizeParticipant, saveMemory);
 
-            function saveMemory(err, verifiedParticipantIds) {
+            function saveMemory(err, otherParticipants) {
                 if (err) {
                     return reply('Username could not be verified').code(422);
                 }
-                verifiedParticipantIds.forEach(function(userId) {
-                    initialPartcipants.push({
-                        acceptance: "unknown",
-                        role: "member",
-                        user: userId
-                    });
-                });
 
                 var newMemory = new Memory({
                     "about.name": request.payload.about.name,
-                    participants: initialPartcipants,
+                    participants: [ownerParticipant].concat(otherParticipants),
                     "preferences.sharing": request.payload.preferences.sharing,
                     startDate: request.payload.startDate,
                     endDate: request.payload.endDate
                 });
-
-                if (request.payload.startDate) {
-
-                }
 
                 newMemory.save(function(err, memory) {
                     if (err) {
@@ -203,7 +204,11 @@ function memoryApi(server) {
                 about: Joi.object({
                     name: Joi.string().min(1).max(200).required()
                 }).required(),
-                participants: Joi.array(),
+                participants: Joi.array().includes(
+                    Joi.object({
+                        user: Joi.string().min(1).required(),
+                        role: Joi.string().valid('member', 'moderator').required()
+                    })).required(),
                 startDate: Joi.date().allow(null),
                 endDate: Joi.date().allow(null),
                 preferences: Joi.object({
