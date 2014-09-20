@@ -9,7 +9,17 @@ function momentApi(server) {
 
     var getAllMomentsConfig = {
         handler: function(request, reply){
-
+            Moment.find({memory: request.params.memid}, function(err, moments){
+                if(err){
+                    reply({
+                        name: 'Database error',
+                        code: 503
+                    });
+                }
+                else{
+                    reply(moments);
+                }
+            });
         }
     };
 
