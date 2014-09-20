@@ -19,7 +19,6 @@ var milestoneSchema = new Schema({
         type: Date,
         default: Date.now
     },
-    shared: String,
     participation: String,
     participants: [{
         user: {
@@ -38,7 +37,7 @@ var milestoneSchema = new Schema({
             ref: 'Moment'
         }
     },
-    viewability: String,
+    viewability: String, //public, participant
 });
 
 

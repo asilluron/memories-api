@@ -13,5 +13,6 @@ var Milestone = mongoose.model('Milestone', schema.milestone);
 models.User = User;
 models.Memory = Memory;
 models.Moment = Moment;
+models.Milestone = Milestone;
 
 module.exports = models;
