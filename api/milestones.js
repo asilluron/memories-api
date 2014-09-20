@@ -125,6 +125,23 @@ function milestonesApi(server) {
         }
     };
 
+    var getMomentsByMilestoneConfig  = {
+        handler: function(request, reply){
+            Moment.find({
+                memory: request.params.memid,
+                milestone: request.params.id
+            }, function(err, moments){
+                if(err){
+                    reply("Could not retrieve moments").code(503);
+                }
+                else{
+                    reply(moments);
+                }
+            });
+        },
+        auth: "jwt"
+    };
+
 
     /**
      * ROUTES SETUP
@@ -139,6 +156,12 @@ function milestonesApi(server) {
         method: 'GET',
         path: '/memories/{memid}/milestones/{id}',
         config: getMilestoneConfig
+    });
+
+    routes.push({
+        method: 'GET',
+        path: '/memories/{memid}/milestones/{id}/moments',
+        config: getMomentsByMilestoneConfig
     });
 
     routes.push({
