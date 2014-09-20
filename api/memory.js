@@ -3,9 +3,58 @@ var User = require("../model").User;
 var Joi = require("joi");
 var async = require("async");
 var routes = [];
+var verifiedParticipants = [];
 
+function populateVerifiedUsers(participant, cb) {
+    //First determine if it is a username or an email
+    if (participant.indexOf("@") > 0) {
+        //We got an email, so let's search for the user by email
+        User.findOne({
+            email: participant
+        }).exec(function(err, user) {
+            if (typeof user === "object") {
+                verifiedParticipants.push(user._id);
+                cb();
+            } else {
+                //Create a new user
+                var newUser = new User({
+                    email: participant
+                }).save(function(err, user) {
+                    verifiedParticipants.push(user._id);
+                    cb();
+                });
+            }
+        });
+    } else {
+        User.find({
+            username: participant
+        }).exec(function(err, user) {
+            if (user) {
+                verifiedParticipants.push(user._id);
+                cb();
+            } else {
+                cb("Username could not be verified");
+            }
+        });
+    }
+}
+//Update a memory
+var updateMemoryConfig = {
+    handler: function(request, reply) {
+        var memid = request.params.id;
+        Memory.findOneAndUpdate({
+            "_id": memid
+        }, request.payload, {}, function(err, memory) {
+            console.log(err);
+            reply(memory);
+        });
+    },
+    auth: "jwt"
+};
 
-//Get a user
+//Delete a memory by ID
+
+//Get a memory
 var getAllMemoryConfig = {
     handler: function(request, reply) {
         Memory.find({
@@ -20,6 +69,32 @@ var getAllMemoryConfig = {
     auth: "jwt"
 };
 
+//Delete a memory
+var deleteMemoryConfig = {
+    handler: function(request, reply) {
+        Memory.findOneAndRemove({
+            "id": request.params.id
+        }, function(err) {
+            if (err) {
+                reply({
+                    name: 'Database error',
+                    code: 503
+                });
+            }
+            else{
+                reply({"deleted": true});
+            }
+        });
+
+    },
+    auth: "jwt",
+    validate: {
+        params: {
+            id: Joi.string().min(1).max(60).required()
+        }
+    }
+};
+
 var createNewMemoryConfig = {
     handler: function(request, reply) {
         var initialPartcipants = [{
@@ -28,41 +103,7 @@ var createNewMemoryConfig = {
             user: request.auth.credentials._id
         }];
         var otherParticipants = request.payload.participants;
-        var verifiedParticipants = [];
-        async.each(otherParticipants, function(participant, cb) {
-            //First determine if it is a username or an email
-            if (participant.indexOf("@") > 0) {
-                //We got an email, so let's search for the user by email
-                User.findOne({
-                    email: participant
-                }).exec(function(err, user) {
-                    if (typeof user === "object") {
-                        verifiedParticipants.push(user._id);
-                        cb();
-                    } else {
-                        //Create a new user
-                        var newUser = new User({
-                            email: participant
-                        }).save(function(err, user) {
-                            verifiedParticipants.push(user._id);
-                            cb();
-                        });
-                    }
-                });
-            } else {
-                User.find({
-                    username: participant
-                }).exec(function(err, user) {
-                    if (user) {
-                        verifiedParticipants.push(user._id);
-                        cb();
-                    } else {
-                        cb("Username could not be verified");
-                    }
-                });
-            }
-        }, saveMemory);
-
+        async.each(otherParticipants, populateVerifiedUsers, saveMemory);
 
         function saveMemory(err) {
             if (err) {
@@ -90,7 +131,8 @@ var createNewMemoryConfig = {
             newMemory.save(function(err, memory) {
                 if (err) {
                     reply({
-                        saved: false
+                        name: 'Database error',
+                        code: 503
                     });
                 } else {
                     reply(memory._id);
@@ -119,6 +161,19 @@ routes.push({
     path: '/memory',
     config: createNewMemoryConfig
 });
+
+routes.push({
+    method: 'PATCH',
+    path: '/memory/{id}',
+    config: updateMemoryConfig
+});
+
+routes.push({
+    method: 'DELETE',
+    path: '/memory/{id}',
+    config: deleteMemoryConfig
+});
+
 
 
 module.exports = routes;
