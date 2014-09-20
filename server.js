@@ -18,18 +18,9 @@ var port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8700;
 var options = {
     cors: {
         origin: ["http://localhost:*"],
-        headers: ["Authorization", "Content-Type"]
+        headers: ["Authorization", "Content-Type", "Access-Control-Allow-Credentials"]
     }
 };
-
-
-var server = new Hapi.Server(port, options);
-var socketHandler = require("./socketService")(server);
-var api = new require("./api")(server);
-
-server.on('MEMORY:NEW', function (memoryId) {
-  var memorySocketHandler = socketHandler(memoryId);
-});
 
 
 var validateLogin = function(username, password, callback) {
@@ -65,31 +56,56 @@ var validateToken = function(token, decodedToken, cb) {
     });
 };
 
-server.pack.register([{
-    plugin: lout
-}, {
-    plugin: require('hapi-auth-jsonwebtoken')
-}, {
-    plugin: require('hapi-auth-basic')
-}], function(err) {
-    if (err) {
-        throw err;
-    }
+var internals = {};
 
-    server.auth.strategy('simple', 'basic', {
-        validateFunc: validateLogin
-    });
 
-    server.auth.strategy('jwt', 'jwt', {
-        key: config.privatekey,
-        validateFunc: validateToken
-    });
+internals.startServer = function() {
+
+    var server = new Hapi.Server(port, options);
+
+
 
     server.start(function() {
-        console.log("Hapi server started @ " + server.info.uri);
+        var socketHandler = require("./socketService")(server);
+
+        server.on('MEMORY:NEW', function(memoryId) {
+            var memorySocketHandler = socketHandler(memoryId);
+        });
+
     });
 
-    api.forEach(function(route) {
-        server.route(route);
+    var api = new require("./api")(server);
+
+    server.pack.register([{
+        plugin: lout
+    }, {
+        plugin: require('hapi-auth-jsonwebtoken')
+    }, {
+        plugin: require('hapi-auth-basic')
+    }], function(err) {
+        if (err) {
+            throw err;
+        }
+
+        server.auth.strategy('simple', 'basic', {
+            validateFunc: validateLogin
+        });
+
+        server.auth.strategy('jwt', 'jwt', {
+            key: config.privatekey,
+            validateFunc: validateToken
+        });
+
+        server.start(function() {
+            console.log("Hapi server started @ " + server.info.uri);
+        });
+
+
+        api.forEach(function(route) {
+            server.route(route);
+        });
     });
-});
+};
+
+
+internals.startServer();

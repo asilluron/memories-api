@@ -1,22 +1,21 @@
-module.exports = function (server) {
-	var io = require('socket.io');
-	var ioServer = io(server);
- 
-	ioServer.on('connection', function (socket) {
+module.exports = function(server) {
+	var SocketIO = require('socket.io');
+	var ioServer = SocketIO.listen(server.listener);
+
+	ioServer.on('connection', function(socket) {
 		socket.emit("connection", "welcome");
 	});
 
-	ioServer.on('joinRoom', function (msg, socket) {
+	ioServer.on('joinRoom', function(msg, socket) {
 		socket.join(msg);
 	});
 
 	var socketCache = {};
 
 	return function getMemoryIoHandler(memoryId) {
-		if(socketCache[memoryId]){
-		} else {
+		if (socketCache[memoryId]) {} else {
 			var ns = ioServer.of(memoryId);
-			ns.on("chatMessage", function () {
+			ns.on("chatMessage", function() {
 				ns.emit(msg);
 			});
 
@@ -61,11 +60,11 @@ module.exports = function (server) {
 
 
 // server
-// 
+//
 
 
 // client
-// 
+//
 
 
 
