@@ -76,15 +76,53 @@ function memoryApi(server) {
     //Update a memory
     var updateMemoryConfig = {
         handler: function(request, reply) {
-            var memid = request.params.id;
-            Memory.findOneAndUpdate({
-                "_id": memid
-            }, request.payload, {}, function(err, memory) {
-                console.log(err);
-                reply(memory);
-            });
+            var id = request.params.id;
+
+            async.map(request.payload.participants, normalizeParticipant, saveMemory);
+
+            function saveMemory(err, participants) {
+                if (err) {
+                    return reply('Username could not be verified').code(422);
+                }
+
+                Memory.findOneAndUpdate({
+                    "_id": id
+                }, {
+                    "about.name": request.payload.about.name,
+                    participants: participants,
+                    "preferences.sharing": request.payload.preferences.sharing,
+                    startDate: request.payload.startDate,
+                    endDate: request.payload.endDate,
+                    modifiedDate: new Date()
+                }, function(err, memory) {
+                    if (err) {
+                        console.log(err);
+                        reply('Database error').code(503);
+                    } else {
+                        server.emit('MEMORY:EDIT', id);
+                        reply().code(204);
+                    }
+                });
+            }
         },
-        auth: "jwt"
+        auth: "jwt",
+        validate: {
+            payload: {
+                about: Joi.object({
+                    name: Joi.string().min(1).max(200).required()
+                }).required(),
+                participants: Joi.array().includes(
+                    Joi.object({
+                        user: Joi.string().min(1).required(),
+                        role: Joi.string().valid('member', 'moderator', 'owner').required()
+                    })).required(),
+                startDate: Joi.date().allow(null),
+                endDate: Joi.date().allow(null),
+                preferences: Joi.object({
+                    sharing: Joi.string().valid('public', 'private', 'unlisted').required()
+                }).required()
+            }
+        }
     };
 
     //Delete a memory by ID
@@ -190,7 +228,9 @@ function memoryApi(server) {
                         reply('Database error').code(503);
                     } else {
                         server.emit('MEMORY:NEW', memory._id);
-                        reply(newMemory);
+                        reply({
+                            _id: memory._id
+                        }).code(201);
                     }
                 });
             }
