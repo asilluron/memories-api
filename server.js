@@ -68,9 +68,34 @@ internals.startServer = function() {
     server.start(function() {
         var socketHandler = require("./socketService")(server);
 
-        server.on('MEMORY:NEW', function(memoryId) {
-            var memorySocketHandler = socketHandler(memoryId);
+
+        /**
+        server.on('MEMORY:NEW_MILESTONE', function(memoryId, milestoneid) {
+            var memSocketHandler = socketHandler.memoryHandler(memoryId);
+            memSocketHandler.newMilestone(milestoneid);
         });
+
+        server.on('MEMORY:DELETE_MILESTONE', function(memoryId, milestoneid) {
+            var memSocketHandler = socketHandler.memoryHandler(memoryId);
+            memSocketHandler.deleteMilestone(milestoneid);
+        });
+
+        //A new moment is created on a memory, not associate with a milestone
+        server.on('MEMORY:NEW_MOMENT', function(memoryId, momentId) {
+            var memSocketHandler = socketHandler.memoryHandler(memoryId);
+            memSocketHandler.newMoment(momentId);
+        });
+
+         server.on('MEMORY:DELETE_MOMENT', function(memoryId, momentId) {
+            var memSocketHandler = socketHandler.memoryHandler(memoryId);
+            memSocketHandler.deleteMoment(momentId);
+        });
+
+        server.on('MILESTONE:NEW_MOMENT', function(memoryId, milestoneid, momentId) {
+            var milestoneSocketHandler = socketHandler.milestoneHandler(memoryId);
+            milestoneSocketHandler.newMoment(momentId);
+        });
+**/
 
     });
 

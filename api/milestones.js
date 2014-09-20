@@ -42,6 +42,7 @@ function milestonesApi(server) {
                         reply("Could not create milestone").reply(503);
                     }
                     else{
+                        server.emit("MEMORY:NEW_MILESTONE", request.params.memid, milestone._id);
                         reply(milestone);
                     }
                 });
@@ -119,6 +120,7 @@ function milestonesApi(server) {
                     reply("Could not delete milestone").code(503);
                 }
                 else{
+                    server.emit("MEMORY:DELETE_MILESTONE", request.params.memid, request.params.id);
                     reply({deleted: true});
                 }
             });

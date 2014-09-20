@@ -32,7 +32,8 @@ function momentApi(server) {
                 text: request.payload.text,
                 imageUrl: request.payload.imageUrl,
                 location: request.payload.location,
-                sharing: request.payload.sharing
+                sharing: request.payload.sharing,
+                milestone: request.payload.milestone
             });
 
             newMoment.save(function(err, moment) {
@@ -42,6 +43,12 @@ function momentApi(server) {
                         code: 503
                     });
                 } else {
+                    if(request.payload.milestone){
+                        server.emit("MILESTONE:NEW_MOMENT", request.params.memid, milestone._id, moment._id);
+                    }
+                    else {
+                        server.emit("MEMORY:NEW_MOMENT", request.params.memid, moment._id);
+                    }
                     reply(moment);
                 }
             });
@@ -59,6 +66,7 @@ function momentApi(server) {
                     }),
                     address: Joi.string()
                 }),
+                milestone: Joi.string().min(24).max(24),
                 sharing: Joi.string().valid("private", "public").required()
             }
         }
@@ -92,6 +100,7 @@ function momentApi(server) {
                     });
               }
               else{
+                server.emit("MEMORY:DELETE_MOMENT", request.params.memid, request.params.id);
                 reply({deleted: true});
               }
             });
