@@ -25,7 +25,7 @@ var momentSchema = new Schema({
         address: String
     },
     milestone: {type: ObjectId, ref: "Milestone"},
-    shareability: String
+    sharing: String
 });
 
 

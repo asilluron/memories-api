@@ -16,10 +16,10 @@ var memorySchema = new Schema({
         default: Date.now
     },
     startDate: Date,
+    endDate: Date,
     preferences: {
         sharing: String
     },
-    endDate: Date,
     active: {type: Boolean, index: true},
     participants: [{acceptance: String, role: String, user: {type: ObjectId, ref: 'User'}}]
 });
