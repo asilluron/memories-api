@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/Kingles/memories_api",
   "dependencies": {
+    "async": "^0.9.0",
     "aws-sdk": "^2.0.17",
     "bcrypt": "^0.8.0",
     "hapi": "^6.8.1",
