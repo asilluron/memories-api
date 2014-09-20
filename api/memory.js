@@ -138,13 +138,17 @@ function memoryApi(server) {
                     });
                 });
 
-
                 var newMemory = new Memory({
-                    about: {
-                        name: request.payload.name
-                    },
-                    participants: initialPartcipants
+                    "about.name": request.payload.about.name,
+                    participants: initialPartcipants,
+                    "preferences.sharing": request.payload.preferences.sharing,
+                    startDate: request.payload.startDate,
+                    endDate: request.payload.endDate
                 });
+
+                if (request.payload.startDate) {
+
+                }
 
                 newMemory.save(function(err, memory) {
                     if (err) {
@@ -162,7 +166,20 @@ function memoryApi(server) {
 
 
         },
-        auth: "jwt"
+        auth: "jwt",
+        validate: {
+            payload: {
+                about: Joi.object({
+                    name: Joi.string().min(1).max(200).required()
+                }).required(),
+                participants: Joi.array(),
+                startDate: Joi.date(),
+                endDate: Joi.date(),
+                preferences: Joi.object({
+                    sharing: Joi.string().valid('public', 'private', 'unlisted').required()
+                }).required()
+            }
+        }
     };
 
 
