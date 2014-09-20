@@ -12,7 +12,8 @@ module.exports = function(server) {
 
 	var socketCache = {};
 
-	return function getMemoryIoHandler(memoryId) {
+	return {
+		memoryHandler: function getMemoryIoHandler(memoryId) {
 		if (socketCache[memoryId]) {} else {
 			var ns = ioServer.of(memoryId);
 			ns.on("chatMessage", function() {
@@ -31,6 +32,7 @@ module.exports = function(server) {
 			socketCache[memoryId] = memoryIo;
 		}
 		return socketCache[memoryId];
+		}
 	};
 
 };
