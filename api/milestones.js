@@ -83,19 +83,45 @@ function milestonesApi(server) {
 
     var getAllMilestonesConfig = {
         handler: function(request, reply) {
-
+            Milestone.find(
+                {memory: request.params.memid})
+                .populate("about.primaryMoment")
+                .exec(function(err, milestones){
+                    if(err){
+                        reply("Could not retrieve milestones").code(503);
+                    }
+                    else{
+                        reply(milestones);
+                    }
+                });
         }
     };
 
     var getMilestoneConfig = {
         handler: function(request, reply) {
-
+            Milestone.findOne({memory: request.params.memid, _id: request.params.id})
+                .populate("about.primaryMoment")
+                .exec(function(err, milestone){
+                    if(err){
+                        reply("Could not retrieve milestone").code(503);
+                    }
+                    else{
+                        reply(milestone);
+                    }
+                });
         }
     };
 
     var deleteMilestoneConfig = {
         handler: function(request, reply) {
-
+            Milestone.findOneAndRemove({memory: request.params.memid, _id: request.params.id}, function(err){
+                if(err){
+                    reply("Could not delete milestone").code(503);
+                }
+                else{
+                    reply({deleted: true});
+                }
+            });
         }
     };
 

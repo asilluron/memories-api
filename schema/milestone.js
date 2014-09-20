@@ -19,7 +19,7 @@ var milestoneSchema = new Schema({
         type: Date,
         default: Date.now
     },
-    participation: String,
+    participation: String, //invite anyone
     participants: [{
         user: {
             type: ObjectId,
