@@ -6,6 +6,8 @@ var routes = [];
 var verifiedParticipants = [];
 
 function memoryApi(server) {
+    // TODO: lock down memory access to participants
+
     function populateVerifiedUsers(participant, cb) {
         //First determine if it is a username or an email
         if (participant.indexOf("@") > 0) {
@@ -60,6 +62,20 @@ function memoryApi(server) {
         handler: function(request, reply) {
             Memory.find({
                 "participants.user": request.auth.credentials._id
+            })
+                .populate('participants.user')
+                .exec(function(err, memory) {
+                    reply(memory);
+                });
+
+        },
+        auth: "jwt"
+    };
+
+    var getMemoryConfig = {
+        handler: function(request, reply) {
+            Memory.findOne({
+                "_id": request.params.id
             })
                 .populate('participants.user')
                 .exec(function(err, memory) {
@@ -138,7 +154,7 @@ function memoryApi(server) {
                         });
                     } else {
                         server.emit('MEMORY:NEW', memory._id);
-                        reply(memory._id);
+                        reply(newMemory);
                     }
                 });
             }
@@ -163,6 +179,12 @@ function memoryApi(server) {
         method: 'POST',
         path: '/memories',
         config: createNewMemoryConfig
+    });
+
+    routes.push({
+        method: 'GET',
+        path: '/memories/{id}',
+        config: getMemoryConfig
     });
 
     routes.push({
