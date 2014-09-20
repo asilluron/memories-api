@@ -173,8 +173,8 @@ function memoryApi(server) {
                     name: Joi.string().min(1).max(200).required()
                 }).required(),
                 participants: Joi.array(),
-                startDate: Joi.date(),
-                endDate: Joi.date(),
+                startDate: Joi.date().allow(null),
+                endDate: Joi.date().allow(null),
                 preferences: Joi.object({
                     sharing: Joi.string().valid('public', 'private', 'unlisted').required()
                 }).required()
