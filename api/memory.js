@@ -5,175 +5,180 @@ var async = require("async");
 var routes = [];
 var verifiedParticipants = [];
 
-function populateVerifiedUsers(participant, cb) {
-    //First determine if it is a username or an email
-    if (participant.indexOf("@") > 0) {
-        //We got an email, so let's search for the user by email
-        User.findOne({
-            email: participant
-        }).exec(function(err, user) {
-            if (typeof user === "object") {
-                verifiedParticipants.push(user._id);
-                cb();
-            } else {
-                //Create a new user
-                var newUser = new User({
-                    email: participant
-                }).save(function(err, user) {
+function memoryApi(server) {
+    function populateVerifiedUsers(participant, cb) {
+        //First determine if it is a username or an email
+        if (participant.indexOf("@") > 0) {
+            //We got an email, so let's search for the user by email
+            User.findOne({
+                email: participant
+            }).exec(function(err, user) {
+                if (typeof user === "object") {
                     verifiedParticipants.push(user._id);
                     cb();
-                });
-            }
-        });
-    } else {
-        User.find({
-            username: participant
-        }).exec(function(err, user) {
-            if (user) {
-                verifiedParticipants.push(user._id);
-                cb();
-            } else {
-                cb("Username could not be verified");
-            }
-        });
-    }
-}
-//Update a memory
-var updateMemoryConfig = {
-    handler: function(request, reply) {
-        var memid = request.params.id;
-        Memory.findOneAndUpdate({
-            "_id": memid
-        }, request.payload, {}, function(err, memory) {
-            console.log(err);
-            reply(memory);
-        });
-    },
-    auth: "jwt"
-};
-
-//Delete a memory by ID
-
-//Get a memory
-var getAllMemoryConfig = {
-    handler: function(request, reply) {
-        Memory.find({
-            "participants.user": request.auth.credentials._id
-        })
-            .populate('participants.user')
-            .exec(function(err, memory) {
-                reply(memory);
+                } else {
+                    //Create a new user
+                    var newUser = new User({
+                        email: participant
+                    }).save(function(err, user) {
+                        verifiedParticipants.push(user._id);
+                        cb();
+                    });
+                }
             });
-
-    },
-    auth: "jwt"
-};
-
-//Delete a memory
-var deleteMemoryConfig = {
-    handler: function(request, reply) {
-        Memory.findOneAndRemove({
-            "id": request.params.id
-        }, function(err) {
-            if (err) {
-                reply({
-                    name: 'Database error',
-                    code: 503
-                });
-            }
-            else{
-                reply({"deleted": true});
-            }
-        });
-
-    },
-    auth: "jwt",
-    validate: {
-        params: {
-            id: Joi.string().min(1).max(60).required()
+        } else {
+            User.find({
+                username: participant
+            }).exec(function(err, user) {
+                if (user) {
+                    verifiedParticipants.push(user._id);
+                    cb();
+                } else {
+                    cb("Username could not be verified");
+                }
+            });
         }
     }
-};
-
-var createNewMemoryConfig = {
-    handler: function(request, reply) {
-        var initialPartcipants = [{
-            acceptance: "accepted",
-            role: "owner",
-            user: request.auth.credentials._id
-        }];
-        var otherParticipants = request.payload.participants;
-        async.each(otherParticipants, populateVerifiedUsers, saveMemory);
-
-        function saveMemory(err) {
-            if (err) {
-                reply({
-                    name: 'Username could not be verified',
-                    code: 422
-                });
-            }
-            verifiedParticipants.forEach(function(vparticipant) {
-                initialPartcipants.push({
-                    acceptance: "unknown",
-                    role: "member",
-                    user: vparticipant
-                });
+    //Update a memory
+    var updateMemoryConfig = {
+        handler: function(request, reply) {
+            var memid = request.params.id;
+            Memory.findOneAndUpdate({
+                "_id": memid
+            }, request.payload, {}, function(err, memory) {
+                console.log(err);
+                reply(memory);
             });
+        },
+        auth: "jwt"
+    };
 
+    //Delete a memory by ID
 
-            var newMemory = new Memory({
-                about: {
-                    name: request.payload.name
-                },
-                participants: initialPartcipants
-            });
+    //Get a memory
+    var getAllMemoryConfig = {
+        handler: function(request, reply) {
+            Memory.find({
+                "participants.user": request.auth.credentials._id
+            })
+                .populate('participants.user')
+                .exec(function(err, memory) {
+                    reply(memory);
+                });
 
-            newMemory.save(function(err, memory) {
+        },
+        auth: "jwt"
+    };
+
+    //Delete a memory
+    var deleteMemoryConfig = {
+        handler: function(request, reply) {
+            Memory.findOneAndRemove({
+                "id": request.params.id
+            }, function(err) {
                 if (err) {
                     reply({
                         name: 'Database error',
                         code: 503
                     });
                 } else {
-                    reply(memory._id);
+                    reply({
+                        "deleted": true
+                    });
                 }
             });
+
+        },
+        auth: "jwt",
+        validate: {
+            params: {
+                id: Joi.string().min(1).max(60).required()
+            }
         }
+    };
+
+    var createNewMemoryConfig = {
+        handler: function(request, reply) {
+            var initialPartcipants = [{
+                acceptance: "accepted",
+                role: "owner",
+                user: request.auth.credentials._id
+            }];
+            var otherParticipants = request.payload.participants;
+            async.each(otherParticipants, populateVerifiedUsers, saveMemory);
+
+            function saveMemory(err) {
+                if (err) {
+                    reply({
+                        name: 'Username could not be verified',
+                        code: 422
+                    });
+                }
+                verifiedParticipants.forEach(function(vparticipant) {
+                    initialPartcipants.push({
+                        acceptance: "unknown",
+                        role: "member",
+                        user: vparticipant
+                    });
+                });
+
+
+                var newMemory = new Memory({
+                    about: {
+                        name: request.payload.name
+                    },
+                    participants: initialPartcipants
+                });
+
+                newMemory.save(function(err, memory) {
+                    if (err) {
+                        reply({
+                            name: 'Database error',
+                            code: 503
+                        });
+                    } else {
+                        server.emit('MEMORY:NEW', memory._id);
+                        reply(memory._id);
+                    }
+                });
+            }
 
 
 
-    },
-    auth: "jwt"
-};
+        },
+        auth: "jwt"
+    };
 
 
-/**
- * ROUTES SETUP
- */
-routes.push({
-    method: 'GET',
-    path: '/memory',
-    config: getAllMemoryConfig
-});
+    /**
+     * ROUTES SETUP
+     */
+    routes.push({
+        method: 'GET',
+        path: '/memory',
+        config: getAllMemoryConfig
+    });
 
-routes.push({
-    method: 'POST',
-    path: '/memory',
-    config: createNewMemoryConfig
-});
+    routes.push({
+        method: 'POST',
+        path: '/memory',
+        config: createNewMemoryConfig
+    });
 
-routes.push({
-    method: 'PATCH',
-    path: '/memory/{id}',
-    config: updateMemoryConfig
-});
+    routes.push({
+        method: 'PATCH',
+        path: '/memory/{id}',
+        config: updateMemoryConfig
+    });
 
-routes.push({
-    method: 'DELETE',
-    path: '/memory/{id}',
-    config: deleteMemoryConfig
-});
+    routes.push({
+        method: 'DELETE',
+        path: '/memory/{id}',
+        config: deleteMemoryConfig
+    });
 
+    return routes;
 
+}
 
-module.exports = routes;
+module.exports = memoryApi;

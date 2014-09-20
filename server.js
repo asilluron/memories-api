@@ -3,16 +3,15 @@ var Hapi = require('hapi');
 var lout = require("lout");
 var config = require("./config");
 var model = require("./model");
-var api = require("./api");
 var Bcrypt = require('bcrypt');
 var io = require('socket.io');
+
 
 mongoose.connect(config.mongoconnection);
 var db = mongoose.connection;
 
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function callback() {});
-
 
 var port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8700;
 
@@ -25,6 +24,12 @@ var options = {
 
 
 var server = new Hapi.Server(port, options);
+var socketHandler = require("./socketService")(server);
+var api = new require("./api")(server);
+
+server.on('MEMORY:NEW', function (memoryId) {
+  var memorySocketHandler = socketHandler(memoryId);
+});
 
 
 var validateLogin = function(username, password, callback) {
