@@ -27,6 +27,7 @@
     "joi": "^4.6.2",
     "jsonwebtoken": "^1.1.2",
     "lout": "^5.0.2",
-    "mongoose": "^3.8.16"
+    "mongoose": "^3.8.16",
+    "socket.io": "^1.1.0"
   }
 }

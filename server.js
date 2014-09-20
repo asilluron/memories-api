@@ -5,6 +5,7 @@ var config = require("./config");
 var model = require("./model");
 var api = require("./api");
 var Bcrypt = require('bcrypt');
+var io = require('socket.io');
 
 mongoose.connect(config.mongoconnection);
 var db = mongoose.connection;
