@@ -82,7 +82,17 @@ function momentApi(server) {
 
     var deleteMomentConfig = {
         handler: function(request, reply){
-
+            Moment.findOneAndRemove({memory: request.params.memid, _id: request.params.id}, function(err){
+                if(err){
+                  reply({
+                        name: 'Database error',
+                        code: 503
+                    });
+              }
+              else{
+                reply({deleted: true});
+              }
+            });
         }
     };
 
