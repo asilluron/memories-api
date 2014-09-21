@@ -42,8 +42,17 @@ function milestonesApi(server) {
                         reply("Could not create milestone").reply(503);
                     }
                     else{
-                        server.emit("MEMORY:NEW_MILESTONE", request.params.memid, milestone._id);
-                        reply(milestone);
+                        Milestone.findOneAndUpdate({_id: request.params.id}, {
+                            milestone: milestone._id
+                        }, function (err) {
+                            if(err){
+                                reply("Could not update memory's milestone").reply(503);
+                            }
+                            else{
+                                server.emit("MEMORY:NEW_MILESTONE", request.params.memid, milestone._id);
+                                reply(milestone);
+                            }
+                        });
                     }
                 });
 
@@ -52,6 +61,7 @@ function milestonesApi(server) {
         auth: "jwt",
         validate: {
             payload: {
+                memory: Joi.string().optional(), // ignored, URL is used regardless
                 moment: Joi.object({
                     text: Joi.string().min(0).max(1000),
                     imageUrl: Joi.string().min(5).max(240),
@@ -74,7 +84,7 @@ function milestonesApi(server) {
                 about: Joi.object({
                     startDate: Joi.date().allow(null),
                     endDate: Joi.date().allow(null),
-                    desc: Joi.string()
+                    desc: Joi.string().allow('')
                 }),
                 viewability: Joi.string().valid('public', 'participant')
             }
