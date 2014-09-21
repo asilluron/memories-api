@@ -17,7 +17,7 @@ var port = process.env.PORT ? parseInt(process.env.PORT, 10) : 8700;
 
 var options = {
     cors: {
-        origin: ["http://localhost:*"],
+        origin: ["http://localhost:*", "http://m.emori.es"],
         headers: ["Authorization", "Content-Type", "Access-Control-Allow-Credentials"]
     }
 };
