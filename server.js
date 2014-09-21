@@ -35,7 +35,9 @@ var validateLogin = function(username, password, callback) {
         };
     }
     model.User.findOne(criteria).exec(function(err, user) {
-        if (username) {
+        if (err) {
+            callback(err);
+        } else if (user) {
             Bcrypt.compare(password, user.password, function(err, isValid) {
                 callback(err, isValid, user);
             });
