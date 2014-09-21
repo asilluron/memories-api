@@ -20,17 +20,17 @@ module.exports = function(server) {
 			var chatSocket;
 			var nameAssociations = {};
 
-			ns.on('nameReg', function(data, socket){
-				console.log("nameReg Fired");
-				nameAssociations[chatSocket] = data.name;
-			});
-
-			ns.on('chatMessage', function(data, socket){
-				chat.emit.broadcast('chatSocket', {memory: memoryId, creator: socket.id, createdDate: Date.now(), text: data.text});
-			});
 
 			ns.on('connection', function(socket){
+				socket.emit("handShake", "TEST");
+				socket.on('nameReg', function(data){
+					socket.join("chat");
+					nameAssociations[chatSocket] = data.name;
+				});
 
+				socket.on('chatMessage', function(data){
+					chat.emit('chatSocket', {memory: memoryId, creator: socket.id, createdDate: Date.now(), text: data.text});
+				});
 			});
 
 			var memoryIo = {
@@ -69,7 +69,7 @@ module.exports = function(server) {
 			if(socketCache.milestones[milestoneId]){} else {
 				var ns = ioServer.of(memoryId + "/" +milestoneId);
 				ns.on('connection', function(socket){
-					socket.emit("helloWorld", "Hello, "+ socket);
+					
 				});
 
 				var milestoneIo = {
