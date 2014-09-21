@@ -29,7 +29,7 @@ module.exports = function(server) {
 				});
 
 				socket.on('chatMessage', function(data){
-					chat.emit('chatSocket', {memory: memoryId, creator: socket.id, createdDate: Date.now(), text: data.text});
+					chat.emit('chatMessage', {memory: memoryId, creator: socket.id, createdDate: Date.now(), text: data.text});
 				});
 			});
 
