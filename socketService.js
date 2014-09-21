@@ -1,23 +1,39 @@
 module.exports = function(server) {
 	var SocketIO = require('socket.io');
 	var ioServer = SocketIO.listen(server.listener);
+	var clientSocket;
 
 	ioServer.on('connection', function(socket) {
 		socket.emit("connection", "welcome");
+		clientSocket = socket;
 	});
 
-	ioServer.on('joinRoom', function(msg, socket) {
-		socket.join(msg);
-	});
-
-	var socketCache = {};
-
+	var socketCache = {
+		memories: {},
+		milestones: {}
+	};
 	return {
 		memoryHandler: function getMemoryIoHandler(memoryId) {
-		if (socketCache[memoryId]) {} else {
+		if (socketCache.memories[memoryId]) {} else {
 			var ns = ioServer.of(memoryId);
-			ns.on("chatMessage", function() {
-				ns.emit(msg);
+			var chat = ioServer.of(memoryId + "/chat");
+			var chatSocket;
+			var nameAssociations = {};
+
+			chat.on('connection', function(socket){
+				chatSocket = socket;
+			});
+
+			chat.on('nameReg', function(data){
+				nameAssociations[chatSocket] = data.name;
+			});
+
+			chat.on('chatMessage', function(data, socket){
+				chat.emit.broadcast('chatSocket', {memory: memoryId, creator: socket.id, createdDate: Date.now(), text: data.text});
+			});
+
+			ns.on('connection', function(socket){
+
 			});
 
 			var memoryIo = {
@@ -27,11 +43,50 @@ module.exports = function(server) {
 						id: milestoneId
 					});
 				},
-				socket: ns
+				deleteMilestone: function deleteMilestone(milestoneId){
+					ns.emit("milestone", {
+						action: "delete",
+						id: milestoneId
+					});
+				},
+				newMoment: function newMoment(memoryId, momentId){
+					ns.emit("moment", {
+						action: "new",
+						id: momentId,
+						parent: {memory: memoryId}
+					});
+				},
+				deleteMoment: function deleteMoment(memoryId){
+					ns.emit("moment", {
+						action: "delete",
+						id: momentId,
+						parent: {memory: memoryId}
+					});
+				},
 			};
-			socketCache[memoryId] = memoryIo;
+			socketCache.memories[memoryId] = memoryIo;
 		}
-		return socketCache[memoryId];
+		return socketCache.memories[memoryId];
+		},
+		milestoneHandler: function getMilestoneHandler(milestoneId){
+			if(socketCache.milestones[milestoneId]){} else {
+				var ns = ioServer.of(memoryId + "/" +milestoneId);
+				ns.on('connection', function(socket){
+					socket.emit("helloWorld", "Hello, "+ socket);
+				});
+
+				var milestoneIo = {
+					newMoment: function newMoment(momentId){
+						ns.emit("moment", {
+							action: "new",
+							id: momentId,
+							parent: {memory: memoryId}
+						});
+					}
+				};	
+				socketCache.milestones[milestoneId] = milestoneIo;
+			}
+			return socketCache.milestones[milestoneId];
 		}
 	};
 

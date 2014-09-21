@@ -142,6 +142,9 @@ function memoryApi(server) {
                         reply('Database error').code(503);
                     } else {
                         reply(memories);
+                        memories.forEach(function(memory){
+                            server.emit("MEMORY:JOIN", memory);
+                        });
                     }
                 });
 

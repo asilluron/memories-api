@@ -68,8 +68,10 @@ internals.startServer = function() {
     server.start(function() {
         var socketHandler = require("./socketService")(server);
 
+        server.on('MEMORY:JOIN', function(data){
+            socketHandler.memoryHandler(data._id);
+        });
 
-        /**
         server.on('MEMORY:NEW_MILESTONE', function(memoryId, milestoneid) {
             var memSocketHandler = socketHandler.memoryHandler(memoryId);
             memSocketHandler.newMilestone(milestoneid);
@@ -92,11 +94,9 @@ internals.startServer = function() {
         });
 
         server.on('MILESTONE:NEW_MOMENT', function(memoryId, milestoneid, momentId) {
-            var milestoneSocketHandler = socketHandler.milestoneHandler(memoryId);
+            var milestoneSocketHandler = socketHandler.milestoneHandler(memoryId, milestoneid);
             milestoneSocketHandler.newMoment(momentId);
         });
-**/
-
     });
 
     var api = new require("./api")(server);
