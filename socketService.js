@@ -16,19 +16,16 @@ module.exports = function(server) {
 		memoryHandler: function getMemoryIoHandler(memoryId) {
 		if (socketCache.memories[memoryId]) {} else {
 			var ns = ioServer.of(memoryId);
-			var chat = ioServer.of(memoryId + "/chat");
+			var chat = ns.to("chat");
 			var chatSocket;
 			var nameAssociations = {};
 
-			chat.on('connection', function(socket){
-				chatSocket = socket;
-			});
-
-			chat.on('nameReg', function(data){
+			ns.on('nameReg', function(data, socket){
+				console.log("nameReg Fired");
 				nameAssociations[chatSocket] = data.name;
 			});
 
-			chat.on('chatMessage', function(data, socket){
+			ns.on('chatMessage', function(data, socket){
 				chat.emit.broadcast('chatSocket', {memory: memoryId, creator: socket.id, createdDate: Date.now(), text: data.text});
 			});
 
