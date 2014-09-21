@@ -56,6 +56,7 @@ function momentApi(server) {
         auth: "jwt",
         validate: {
             payload: {
+                memory: Joi.string(),
                 text: Joi.string().min(0).max(1000),
                 imageUrl: Joi.string().min(5).max(240),
                 location: Joi.object({
