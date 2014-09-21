@@ -26,7 +26,8 @@ function userApi(server) {
             var newUser = new User({
                 email: request.payload.email,
                 password: Bcrypt.hashSync(request.payload.password, salt1),
-                preferredName: request.payload.name
+                preferredName: request.payload.preferredName,
+                username: request.payload.username
             });
 
             console.log(request.payload);
