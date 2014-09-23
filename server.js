@@ -5,7 +5,10 @@ var config = require("./config");
 var model = require("./model");
 var Bcrypt = require('bcrypt');
 var io = require('socket.io');
+var redis = require('redis');
 
+var redisClient = redis.createClient(process.env.REDIS_PORT, process.env.REDIS_URL, {});
+redisClient.auth(process.env.REDIS_PASS);
 
 mongoose.connect(config.mongoconnection);
 var db = mongoose.connection;
