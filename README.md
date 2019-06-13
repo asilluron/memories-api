@@ -20,3 +20,6 @@ We completed this API in less than 36 hours of real time. The hackathon started 
 * JWT Token auth
 * Real time streaming using SocketIO
 * S3 secure uploads
+
+## Other Repositories
+https://github.com/asilluron/memories-ui
