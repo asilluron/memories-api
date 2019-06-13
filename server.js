@@ -5,7 +5,10 @@ var config = require("./config");
 var model = require("./model");
 var Bcrypt = require('bcrypt');
 var io = require('socket.io');
+var redis = require('redis');
 
+var redisClient = redis.createClient(process.env.REDIS_PORT, process.env.REDIS_URL, {});
+redisClient.auth(process.env.REDIS_PASS);
 
 mongoose.connect(config.mongoconnection);
 var db = mongoose.connection;
@@ -35,7 +38,9 @@ var validateLogin = function(username, password, callback) {
         };
     }
     model.User.findOne(criteria).exec(function(err, user) {
-        if (username) {
+        if (err) {
+            callback(err);
+        } else if (user) {
             Bcrypt.compare(password, user.password, function(err, isValid) {
                 callback(err, isValid, user);
             });

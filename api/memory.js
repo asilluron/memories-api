@@ -127,6 +127,42 @@ function memoryApi(server) {
         }
     };
 
+    var createInviteConfig = {
+        handler: function(request, reply) {
+            // TODO: only allow owner or moderator to update
+            var id = request.params.id;
+
+            findOrCreateUserIdByEmail(request.payload.email, function (err, userId) {
+                if (err) {
+                    return reply('User could not be invited').code(422);
+                }
+                Memory.findOneAndUpdate({
+                    "_id": id
+                }, {
+                    $push: {
+                        participants: {
+                            acceptance: 'unknown',
+                            role: 'member',
+                            user: userId
+                        }
+                    }
+                }, function (err) {
+                    if (err) {
+                        reply('Database error').code(503);
+                    } else {
+                        reply().code(204);
+                    }
+                });
+            });
+        },
+        auth: "jwt",
+        validate: {
+            payload: {
+                email: Joi.string().email().required()
+            }
+        }
+    };
+
     //Delete a memory by ID
 
     //Get a memory
@@ -337,6 +373,12 @@ function memoryApi(server) {
         method: 'PATCH',
         path: '/memories/{id}',
         config: updateMemoryConfig
+    });
+
+    routes.push({
+        method: 'POST',
+        path: '/memories/{id}/invite',
+        config: createInviteConfig
     });
 
     routes.push({
