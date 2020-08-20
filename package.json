@@ -19,7 +19,7 @@
   "dependencies": {
     "async": "^0.9.0",
     "aws-sdk": "^2.0.17",
-    "bcrypt": "^0.8.0",
+    "bcrypt": "^5.0.0",
     "crypto": "0.0.3",
     "hapi": "^6.8.1",
     "hapi-auth-basic": "^1.1.1",
